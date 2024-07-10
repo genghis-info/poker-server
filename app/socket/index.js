@@ -1,4 +1,4 @@
-const redis = require('../db/redis');
+const db = require('../db/memcache');
 const defaultState = {
   team: [],
   show: false
@@ -39,19 +39,19 @@ module.exports = (socket, io) => {
     console.log(`Client '${socket.id}' joined room '${currentRoom}'`);
 
     socket.join(currentRoom, () => {
-      redis.get(currentRoom).then(result => {
+      db.get(currentRoom).then(result => {
         if (!result) {
           console.log(`New room '${currentRoom}' created`);
           result = defaultState;
         }
-        redis.set(currentRoom, result);
+        db.set(currentRoom, result);
         io.in(currentRoom).emit('stateUpdate', getResultWithoutScores(result));
       });
     });
   });
 
   socket.on('play', (player) => {
-    redis.get(currentRoom).then(result => {
+    db.get(currentRoom).then(result => {
       if (!result) { return; }
 
       if (typeof player !== 'object') player = { name: player };
@@ -62,13 +62,13 @@ module.exports = (socket, io) => {
         voted: false
       }));
 
-      redis.set(currentRoom, result);
+      db.set(currentRoom, result);
       io.in(currentRoom).emit('stateUpdate', getResultWithoutScores(result));
     });
   });
 
   socket.on('vote', (score) => {
-    redis.get(currentRoom).then(result => {
+    db.get(currentRoom).then(result => {
       if (!result) { return; }
 
       console.log(`Client '${socket.id}' of room '${currentRoom}' voted`);
@@ -81,13 +81,13 @@ module.exports = (socket, io) => {
         playerId: votingPlayer.id
       };
 
-      redis.set(currentRoom, result);
+      db.set(currentRoom, result);
       io.in(currentRoom).emit('stateUpdate', { ...getResultWithoutScores(result), action });
     });
   });
 
   socket.on('show', () => {
-    redis.get(currentRoom).then(result => {
+    db.get(currentRoom).then(result => {
       if (!result) { return; }
 
       console.log(`Client '${socket.id}' of room '${currentRoom}' showed the result`);
@@ -98,13 +98,13 @@ module.exports = (socket, io) => {
         playerId: socket.id
       };
 
-      redis.set(currentRoom, result);
+      db.set(currentRoom, result);
       io.in(currentRoom).emit('stateUpdate', { ...result, action });
     });
   });
 
   socket.on('clear', () => {
-    redis.get(currentRoom).then(result => {
+    db.get(currentRoom).then(result => {
       if (!result) { return; }
 
       console.log(`Client '${socket.id}' of room '${currentRoom}' cleared the result`);
@@ -119,7 +119,7 @@ module.exports = (socket, io) => {
         playerId: socket.id
       };
 
-      redis.set(currentRoom, result);
+      db.set(currentRoom, result);
       // the boolean is used for clients to indicate it's clear action,
       // then the local state `myScore` could be cleared.
       io.in(currentRoom).emit('stateUpdate', { ...result, action }, true);
@@ -127,7 +127,7 @@ module.exports = (socket, io) => {
   });
 
   socket.on('disconnect', () => {
-    redis.get(currentRoom).then(result => {
+    db.get(currentRoom).then(result => {
       if (!result) { return; }
 
       console.log(`Client '${socket.id}' of room '${currentRoom}' disconnected`);
@@ -136,9 +136,9 @@ module.exports = (socket, io) => {
       if (isRoomEmpty(io, currentRoom)) {
         console.log(`All clients of room '${currentRoom}' disconnected, deleting the room`);
         result = defaultState;
-        redis.del(currentRoom);
+        db.del(currentRoom);
       } else {
-        redis.set(currentRoom, result);
+        db.set(currentRoom, result);
       }
 
       socket.to(currentRoom).emit('stateUpdate', getResultWithoutScores(result));

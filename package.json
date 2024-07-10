@@ -6,10 +6,12 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon index.js",
-    "test": "mocha --recursive ./tests"
+    "test": "mocha --recursive ./tests",
+    "build-submodule": "echo 'Building submodule web...' && cd web && yarn install && NODE_OPTIONS=--openssl-legacy-provider yarn run build",
+    "build": "yarn run build-submodule && echo 'Building main project...' && cp -r web/build public && docker build ./ -t poker4fun"
   },
   "engines": {
-    "node": ">=8.3.0"
+    "node": ">=20"
   },
   "keywords": [
     "poker"
