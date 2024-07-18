@@ -15,3 +15,7 @@ app.use(express.static(__dirname + '/public'));
 io.on('connection', (socket) => require('./app/socket')(socket, io));
 
 http.listen(port, () => console.log(`Listening on port ${port}`));
+
+app.use((req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
+});
